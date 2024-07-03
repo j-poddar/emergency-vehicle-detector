@@ -1,64 +1,97 @@
-from flask import Flask, request, render_template, redirect, url_for
-from werkzeug.utils import secure_filename
+import streamlit as st
 from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+from PIL import Image, ImageOps
 import numpy as np
+import requests
 import os
 
-app = Flask(__name__)
 
-# Define the upload folder where uploaded images will be stored
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# Load your trained model
+
+#https://github.com/j-poddar/emergency-vehicle-detector/releases/download/saved_h5_model_v1/model_vgg16.h5
+#model = load_model('model_vgg16.h5')
 
 
-# Load the trained VGG16 model
-model = load_model('model_vgg16.h5')
+#model_url = "https://github.com/j-poddar/emergency-vehicle-detector/releases/download/saved_h5_model_v1/model_vgg16.h5"
 
-# Define the prediction function
-def predict_image(image_path):
-    img = image.load_img(image_path, target_size=(224, 224))
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array /= 255.
 
-    prediction = model.predict(img_array)
-    if prediction[0][0] > 0.5:
-        return 'Emergency Vehicle'
-    else:
-        return 'Not an Emergency Vehicle'
+# URL of the .h5 model file in the GitHub release
+model_url = 'https://github.com/j-poddar/emergency-vehicle-detector/releases/download/saved_h5_model_v1/model_vgg16.h5'
+model_filename = 'model.h5'
 
-# Define the route for the home page
-@app.route('/', methods=['GET', 'POST'])
-def upload_image():
-    if request.method == 'POST':
-        # Check if the post request has the file part
-        if 'file' not in request.files:
-            return render_template('index.html', prediction='No file part')
+# Download the model file
+if not os.path.exists(model_filename):
+    with st.spinner('Downloading model...'):
+        response = requests.get(model_url, verify=False)
+        with open(model_filename, 'wb') as f:
+            f.write(response.content)
 
-        file = request.files['file']
-        # If the user does not select a file, the browser submits an empty file without a filename
-        if file.filename == '':
-            return render_template('index.html', prediction='No selected file')
+# Load your trained model
+model = load_model(model_filename)
 
-        # If the file exists and is allowed
-        if file:
-            # Create the uploads folder if it doesn't exist
-            if not os.path.exists(UPLOAD_FOLDER):
-                os.makedirs(UPLOAD_FOLDER)
-           
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            prediction = predict_image(file_path)
-            return render_template('result.html', prediction=prediction, uploaded_image=file_path)
 
-    return render_template('index.html')
+# Custom CSS for beautification
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f5f5f5;
+    }
+    .header {
+        font-size:40px;
+        color:#FF6347;
+        text-align:center;
+    }
+    .subheader {
+        font-size:20px;
+        color:#4682B4;
+        text-align:center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Define the route for the 'Predict another Vehicle' button
-@app.route('/predict_another', methods=['GET', 'POST'])
-def predict_another():
-    return redirect(url_for('upload_image'))
+# Header and Subheader
+st.markdown('<p class="header">Emergency Vehicle Detector</p>', unsafe_allow_html=True)
+st.markdown('<p class="subheader">Upload an image of a vehicle to determine if it\'s an emergency vehicle or not.</p>', unsafe_allow_html=True)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Sidebar for additional information
+st.sidebar.title("About")
+st.sidebar.info(
+    """
+    This app uses a deep learning model to classify vehicles as emergency or non-emergency.
+    Upload an image, and the model will predict the category.
+    """
+)
+
+# File uploader
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+
+# Layout for displaying image and prediction result
+if uploaded_file is not None:
+    image = Image.open(uploaded_file)
+   
+    # Display image in columns for better layout
+    col1, col2 = st.columns(2)
+    with col1:
+        st.image(image, caption='Uploaded Image', use_column_width=True)
+
+    with col2:
+        st.write("")
+        #st.write("Classifying...")
+
+        # Preprocess the image
+        size = (224, 224)  # or the size your model expects
+        image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
+        img = np.asarray(image)
+        img = img / 255.0  # normalize to [0, 1]
+        img = np.expand_dims(img, axis=0)  # add batch dimension
+
+        with st.spinner('Predicting...'):
+            prediction = model.predict(img)
+            if prediction[0][0] > 0.5:  # assuming the model outputs a single value, higher means emergency
+                result = 'Emergency Vehicle'
+                result_color = '#FF4500'  # Red color for emergency
+            else:
+                result = 'Non-emergency Vehicle'
+                result_color = '#32CD32'  # Green color for non-emergency
+
+        st.markdown(f'<p style="font-size:30px; color:{result_color};">{result}</p>', unsafe_allow_html=True)
