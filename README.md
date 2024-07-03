@@ -1,6 +1,8 @@
 # emergency-vehicle-detector
 
-![Emergency Vehicle Detector]([https://your-image-url](https://github.com/j-poddar/emergency-vehicle-detector/blob/main/images/emergency_vehicle_detector_home_page.PNG))
+![Emergency Vehicle Detector](https://github.com/j-poddar/emergency-vehicle-detector/blob/main/images/emergency_vehicle_detector_home_page.PNG)
+
+
 
 ## Overview
 
