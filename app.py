@@ -17,7 +17,7 @@ import os
 
 # URL of the .h5 model file in the GitHub release
 model_url = 'https://github.com/j-poddar/emergency-vehicle-detector/releases/download/saved_h5_model_v1/model_vgg16.h5'
-model_filename = 'model.h5'
+model_filename = 'model_vgg16.h5'
 
 # Download the model file
 if not os.path.exists(model_filename):
