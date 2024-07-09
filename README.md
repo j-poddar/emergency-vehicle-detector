@@ -26,5 +26,5 @@ The model is a Convolutional Neural Network (CNN) trained to classify images of 
 
 ## Acknowledgements
 
-- This project uses [Streamlit](https://streamlit.io) for the web interface.
+- This project uses [Streamlit](https://streamlit.io) to build the web interface, and [Streamlit Community Cloud](https://streamlit.io/cloud) to deploy the web application.
 - The deep learning model is built with [TensorFlow](https://www.tensorflow.org).
